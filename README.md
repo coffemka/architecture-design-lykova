@@ -1,2 +1,3 @@
-# architecture-design-lykova
+# Лыкова Кристина Александровна РИС-22-2
+## architecture-design-lykova
 Репозиторий проектов по Проектированию архитектуры ПС 
