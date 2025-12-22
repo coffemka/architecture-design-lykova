@@ -1,0 +1,125 @@
+ScheduleService -> YandexAPI: POST /events\n(создание события с публичной ссылкой)
+activate YandexAPI
+YandexAPI --> ScheduleService: 201 Created (Event ID, Public URL)
+deactivate YandexAPI
+
+ScheduleService --> BackendAPI: Слот создан (ID, статус, URL)
+deactivate ScheduleService
+
+BackendAPI -> TeacherUI: 201 Created\nСтатус: "Свободен"\nСсылка: {URL}
+deactivate BackendAPI
+
+TeacherUI -> Teacher: Показывает созданный слот\nи публичную ссылку
+TeacherUI -> TelegramBot: Автоматически отправляет\nссылку в бота
+activate TelegramBot
+TelegramBot -> Student: Показывает сообщение\n"Записаться на консультацию"
+deactivate TelegramBot
+
+deactivate TeacherUI
+
+== 2. Студент записывается через Telegram-бота ==
+
+Student -> TelegramBot: Нажимает кнопку "Записаться"\nили команду /book
+activate TelegramBot
+
+TelegramBot -> BackendAPI: GET /api/slots/available
+activate BackendAPI
+
+BackendAPI -> ScheduleService: Получить свободные слоты
+activate ScheduleService
+ScheduleService -> Database: Запрос слотов со статусом "свободен"
+activate Database
+Database --> ScheduleService: Список слотов
+deactivate Database
+ScheduleService --> BackendAPI: Список слотов (ID, время)
+deactivate ScheduleService
+
+BackendAPI -> TelegramBot: Список доступных слотов
+deactivate BackendAPI
+
+TelegramBot -> Student: Показывает инлайн-клавиатуру\nс выбором времени
+Student -> TelegramBot: Выбирает временной слот
+TelegramBot -> Student: Запрашивает тему консультации
+Student -> TelegramBot: Отправляет тему консультации
+
+TelegramBot -> BackendAPI: POST /api/bookings\n(ID слота, ID студента, тема)
+activate BackendAPI
+
+BackendAPI -> ScheduleService: Забронировать слот
+activate ScheduleService
+
+ScheduleService -> Database: Проверяет доступность слота\nи обновляет статус на "ожидание"
+activate Database
+Database --> ScheduleService: Данные обновлены
+deactivate Database
+
+ScheduleService -> YandexAPI: PATCH /events/{eventId}\n(добавить студента в описание)
+activate YandexAPI
+YandexAPI --> ScheduleService: 200 OK
+deactivate YandexAPI
+
+ScheduleService -> JournalService: Уведомить о новой записи
+activate JournalService
+
+JournalService -> TeacherUI: WebSocket-уведомление\n"Новая запись от студента"
+activate TeacherUI
+TeacherUI -> Teacher: Покажает уведомление\nв интерфейсе
+TeacherUI --> JournalService:
+deactivate TeacherUI
+
+JournalService -> JournalService: Запланировать напоминание\nв Telegram за 1 час
+JournalService --> ScheduleService:
+deactivate JournalService
+
+ScheduleService --> BackendAPI: Бронирование подтверждено
+deactivate ScheduleService
+
+BackendAPI -> TelegramBot: 201 Created
+deactivate BackendAPI
+
+TelegramBot -> Student: "Вы успешно записались!\nОжидайте подтверждения"
+deactivate TelegramBot
+
+== 3. Преподаватель подтверждает запись ==
+
+Teacher -> TeacherUI: Нажимает "Подтвердить"\nна записи студента
+activate TeacherUI
+
+TeacherUI -> BackendAPI: PUT /api/bookings/{id}/confirm
+activate BackendAPI
+
+BackendAPI -> ScheduleService: Подтвердить бронирование
+activate ScheduleService
+
+ScheduleService -> Database: Обновить статус на "подтверждено"
+activate Database
+Database --> ScheduleService:
+deactivate Database
+
+ScheduleService -> YandexAPI: PATCH /events/{eventId}\n(добавить статус "подтверждено")
+activate YandexAPI
+YandexAPI --> ScheduleService: 200 OK
+deactivate YandexAPI
+
+ScheduleService -> JournalService: Зафиксировать подтверждение
+activate JournalService
+
+JournalService -> TelegramBot: Отправить студенту\n"Консультация подтверждена!"
+activate TelegramBot
+TelegramBot -> Student: Отправляет сообщение\nс подтверждением
+TelegramBot --> JournalService:
+deactivate TelegramBot
+
+JournalService -> JournalService: Обновить статистику консультаций
+JournalService --> ScheduleService:
+deactivate JournalService
+
+ScheduleService --> BackendAPI: Подтверждение выполнено
+deactivate ScheduleService
+
+BackendAPI -> TeacherUI: 200 OK\nСтатистика обновлена
+deactivate BackendAPI
+
+TeacherUI -> Teacher: Показывает обновленный статус\nи статистику
+deactivate TeacherUI
+@enduml
