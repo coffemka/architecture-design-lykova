@@ -1,0 +1,70 @@
+@startuml
+
+class Teacher {
+  id: uuid
+  telegram_id: bigint
+  full_name: varchar(200)
+  email: varchar(200)
+  yandex_calendar_id: varchar(100)
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+class Student {
+  id: uuid
+  telegram_id: bigint
+  full_name: varchar(200)
+  student_group: varchar(50)
+  email: varchar(200)
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+class ConsultationSlot {
+  id: uuid
+  teacher_id: uuid
+  start_time: timestamp
+  end_time: timestamp
+  duration_minutes: integer
+  status: varchar(20)
+  yandex_event_id: varchar(100)
+  yandex_public_url: text
+  created_at: timestamp
+  updated_at: timestamp
+}
+
+class Booking {
+  id: uuid
+  slot_id: uuid
+  student_id: uuid
+  consultation_topic: text
+  status: varchar(20)
+  booked_at: timestamp
+  confirmed_at: timestamp
+  reminder_sent: boolean
+  notes: text
+}
+
+class ConsultationJournal {
+  id: uuid
+  booking_id: uuid 
+  teacher_id: uuid 
+  student_id: uuid 
+  actual_start_time: timestamp
+  actual_end_time: timestamp
+  duration_minutes: integer
+  topic_discussed: text
+  materials_used: text
+  student_progress: text
+  next_steps: text
+  consultation_rating: integer
+  created_at: timestamp
+}
+
+Teacher "1" -- "0..*" ConsultationSlot : создает
+Student "1" -- "0..*" Booking : записывается на
+ConsultationSlot "1" -- "0..1" Booking : содержит
+Teacher "1" -- "0..*" ConsultationJournal : ведет
+Booking "1" -- "1" ConsultationJournal : документируется в
+Student "1" -- "0..*" ConsultationJournal : участвует в
+@enduml
