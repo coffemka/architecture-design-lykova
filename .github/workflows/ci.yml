@@ -2,9 +2,9 @@ name: Test Consultation API
 
 on:
   push:
-    branches: [ LabWork5, main ]
+    branches: [ LabWork5_V2, main ]
   pull_request:
-    branches: [ LabWork5, main ]
+    branches: [ LabWork5_V2, main ]
 
 jobs:
   test:
