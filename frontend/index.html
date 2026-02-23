@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система консультаций</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #666;
+            margin-top: 0;
+        }
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .slot-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .slot-card.free { border-left: 4px solid #4CAF50; }
+        .slot-card.pending { border-left: 4px solid #FFC107; }
+        .slot-card.booked { border-left: 4px solid #2196F3; }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover {
+            background: #1976D2;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        pre {
+            margin: 0;
+            color: #333;
+        }
+        .error {
+            color: #f44336;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 4px;
+        }
+        .success {
+            color: #4CAF50;
+            padding: 10px;
+            background: #E8F5E9;
+            border-radius: 4px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #ddd;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Система записи на консультации</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('slots')">Слоты</div>
+            <div class="tab" onclick="showTab('bookings')">Бронирования</div>
+            <div class="tab" onclick="showTab('create')">Создать слот</div>
+        </div>
+
+        <!-- Вкладка со слотами -->
+        <div id="tab-slots" class="tab-content active">
+            <div class="section">
+                <h2>Доступные слоты</h2>
+                <button onclick="loadSlots()" class="secondary">Обновить список</button>
+                <div id="slots-list" style="margin-top: 20px;">
+                    Загрузка...
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка с бронированиями -->
+        <div id="tab-bookings" class="tab-content">
+            <div class="section">
+                <h2>Создать бронирование</h2>
+                <div class="form-group">
+                    <label>ID слота:</label>
+                    <input type="text" id="booking-slotId" placeholder="Введите ID слота">
+                </div>
+                <div class="form-group">
+                    <label>Ваше имя:</label>
+                    <input type="text" id="booking-studentName" placeholder="Иванов Иван">
+                </div>
+                <div class="form-group">
+                    <label>Тема консультации:</label>
+                    <input type="text" id="booking-topic" placeholder="О чем хотите спросить">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="booking-email" placeholder="email@example.com">
+                </div>
+                <button onclick="createBooking()">Забронировать</button>
+            </div>
+
+            <div class="section">
+                <h2>Подтвердить бронирование</h2>
+                <div class="form-group">
+                    <label>ID бронирования:</label>
+                    <input type="text" id="confirm-bookingId" placeholder="Введите ID бронирования">
+                </div>
+                <button onclick="confirmBooking()">Подтвердить</button>
+            </div>
+        </div>
+
+        <!-- Вкладка создания слота -->
+        <div id="tab-create" class="tab-content">
+            <div class="section">
+                <h2>Создать новый слот (для преподавателя)</h2>
+                <div class="form-group">
+                    <label>ID преподавателя:</label>
+                    <input type="text" id="slot-teacherId" value="teacher1">
+                </div>
+                <div class="form-group">
+                    <label>Дата и время начала:</label>
+                    <input type="datetime-local" id="slot-startTime">
+                </div>
+                <div class="form-group">
+                    <label>Дата и время окончания:</label>
+                    <input type="datetime-local" id="slot-endTime">
+                </div>
+                <div class="form-group">
+                    <label>Тип встречи:</label>
+                    <select id="slot-meetingType">
+                        <option value="0">Online</option>
+                        <option value="1">Offline</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Описание:</label>
+                    <textarea id="slot-description" rows="3"></textarea>
+                </div>
+                <button onclick="createSlot()">Создать слот</button>
+            </div>
+        </div>
+
+        <!-- Результаты запросов -->
+        <div class="section">
+            <h2>Результат</h2>
+            <div class="result">
+                <pre id="result">Готов к работе...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        // Переключение вкладок
+        function showTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Показываем выбранную вкладку
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Загрузка слотов
+        async function loadSlots() {
+            showResult('Загрузка слотов...');
+            try {
+                const response = await fetch(`${API_URL}/slots/available`);
+                const data = await response.json();
+                
+                let html = '<div class="slots-grid">';
+                if (data.slots && data.slots.length > 0) {
+                    data.slots.forEach(slot => {
+                        html += `
+                            <div class="slot-card free">
+                                <strong>${slot.teacherName}</strong><br>
+                                📅 ${new Date(slot.startTime).toLocaleString()}<br>
+                                ⏱️ ${new Date(slot.endTime).toLocaleTimeString()}<br>
+                                ${slot.meetingType === 0 ? '💻 Online' : '🏢 Offline'}<br>
+                                📝 ${slot.description || 'Нет описания'}<br>
+                                <small>ID: ${slot.id}</small>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p>Нет доступных слотов</p>';
+                }
+                html += '</div>';
+                
+                document.getElementById('slots-list').innerHTML = html;
+                showResult(JSON.stringify(data, null, 2));
+            } catch (error) {
+                document.getElementById('slots-list').innerHTML = '<div class="error">Ошибка загрузки</div>';
+                showResult(`Ошибка: ${error.message}`, true);
+            }
+        }
+
+        // Создание бронирования
+        async function createBooking() {
+            const bookingData = {
+                slotId: document.getElementById('booking-slotId').value,
+                studentId: 'student_' + Date.now(),
+                studentName: document.getElementById('booking-studentName').value,
+                topic: document.getElementById('booking-topic').value,
+                contactInfo: {
+                    email: document.getElementById('booking-email').value
+                }
+            };
+
+            if (!bookingData.slotId || !bookingData.studentName || !bookingData.topic) {
+                showResult('Заполните все поля!', true);
+                return;
+            }
+
+            showResult('Создание бронирования...');
+            
+            try {
+                const response = await fetch(`${API_URL}/bookings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+                loadSlots(); // Обновляем список слотов
+            } catch (error) {
+                showResult(`Ошибка: ${error.message}`, true);
+            }
+        }
+
+        // Подтверждение бронирования
+        async function confirmBooking() {
+            const bookingId = document.getElementById('confirm-bookingId').value;
+            
+            if (!bookingId) {
+                showResult('Введите ID бронирования!', true);
+                return;
+            }
+
+            showResult('Подтверждение бронирования...');
+            
+            try {
+                const response = await fetch(`${API_URL}/bookings/${bookingId}/confirm`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        teacherNotes: 'Подтверждено через веб-интерфейс',
+                        sendNotification: true
+                    })
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult(`Ошибка: ${error.message}`, true);
+            }
+        }
+
+        // Создание слота
+        async function createSlot() {
+            const startTime = new Date(document.getElementById('slot-startTime').value);
+            const endTime = new Date(document.getElementById('slot-endTime').value);
+            
+            const slotData = {
+                teacherId: document.getElementById('slot-teacherId').value,
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                meetingType: parseInt(document.getElementById('slot-meetingType').value),
+                description: document.getElementById('slot-description').value
+            };
+
+            if (!slotData.startTime || !slotData.endTime) {
+                showResult('Выберите время начала и окончания!', true);
+                return;
+            }
+
+            showResult('Создание слота...');
+            
+            try {
+                const response = await fetch(`${API_URL}/slots`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(slotData)
+                });
+                const data = await response.json();
+                showResult(JSON.stringify(data, null, 2));
+                loadSlots(); // Обновляем список слотов
+            } catch (error) {
+                showResult(`Ошибка: ${error.message}`, true);
+            }
+        }
+
+        // Показать результат
+        function showResult(message, isError = false) {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
+            resultEl.style.color = isError ? '#f44336' : '#333';
+        }
+
+        // Загружаем слоты при открытии страницы
+        loadSlots();
+    </script>
+</body>
+</html>

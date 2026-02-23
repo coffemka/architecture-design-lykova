@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # База данных PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: consultation-postgres
+    environment:
+      POSTGRES_DB: consultationdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - consultation-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Бэкенд API
+  backend:
+    build: ./backend
+    container_name: consultation-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=consultationdb;Username=postgres;Password=postgres123
+    ports:
+      - "5000:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - consultation-network
+    restart: unless-stopped
+
+  # Фронтенд клиент
+  frontend:
+    image: nginx:alpine
+    container_name: consultation-client
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    depends_on:
+      - backend
+    networks:
+      - consultation-network
+    restart: unless-stopped
+
+networks:
+  consultation-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
